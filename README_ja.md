@@ -7,7 +7,7 @@
 [![Discord](https://img.shields.io/badge/Discord-参加する-7289DA?style=flat&logo=discord)](https://discord.com/invite/dwG9jPrhxB)
 [![X](https://img.shields.io/badge/X(Twitter)-@mcp__router-1DA1F2?style=flat&logo=x)](https://x.com/mcp_router)
 
-[[English](https://github.com/mcp-router/mcp-router/blob/main/README.md) | 日本語 | [中文](https://github.com/mcp-router/mcp-router/blob/main/README_zh.md)]
+[[中文](README.md) | [English](README_en.md) | 日本語]
 
 </div>
 

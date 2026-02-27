@@ -19,6 +19,8 @@ jobs:
             label: macOS
           - os: windows-latest
             label: Windows
+          - os: ubuntu-latest
+            label: Ubuntu
     env:
       CI: true
 
@@ -39,6 +41,12 @@ jobs:
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
+
+      - name: Install Linux packaging dependencies
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y fakeroot dpkg
 
       - name: Run make
         run: pnpm run make
