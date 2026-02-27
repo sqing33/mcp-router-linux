@@ -1,6 +1,7 @@
 import type { ForgeConfig } from "@electron-forge/shared-types";
 import { MakerSquirrel } from "@electron-forge/maker-squirrel";
 import { MakerZIP } from "@electron-forge/maker-zip";
+import { MakerDeb } from "@electron-forge/maker-deb";
 import { AutoUnpackNativesPlugin } from "@electron-forge/plugin-auto-unpack-natives";
 import { WebpackPlugin } from "@electron-forge/plugin-webpack";
 import { FusesPlugin } from "@electron-forge/plugin-fuses";
@@ -14,6 +15,13 @@ import * as path from "path";
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 require("dotenv").config({ path: path.resolve(__dirname, "../../.env") });
 
+const parseBool = (value: string | undefined, defaultValue: boolean): boolean => {
+  if (value == null) return defaultValue;
+  const normalized = value.trim().toLowerCase();
+  if (["1", "true", "yes", "y", "on"].includes(normalized)) return true;
+  if (["0", "false", "no", "n", "off"].includes(normalized)) return false;
+  return defaultValue;
+};
 
 const isMac = process.platform === "darwin";
 const hasSignIdentity = !!process.env.PUBLIC_IDENTIFIER;
@@ -22,6 +30,18 @@ const hasNotarizeCreds = !!(
   process.env.APPLE_API_KEY_ID &&
   process.env.APPLE_API_ISSUER
 );
+const disableChecksumValidation = parseBool(
+  process.env.FORGE_DISABLE_CHECKSUMS,
+  false,
+);
+
+const githubRepository = (() => {
+  const repo = process.env.GITHUB_REPOSITORY?.trim(); // owner/name (GitHub Actions)
+  if (!repo || !repo.includes("/")) return null;
+  const [owner, name] = repo.split("/", 2);
+  if (!owner || !name) return null;
+  return { owner, name };
+})();
 
 const config: ForgeConfig = {
   packagerConfig: {
@@ -29,6 +49,11 @@ const config: ForgeConfig = {
     icon: "./public/images/icon/icon",
     // Support both Intel and Apple Silicon architectures - use target arch from env
     arch: (process.env.npm_config_target_arch as any) || process.arch,
+    download: disableChecksumValidation
+      ? {
+          unsafelyDisableChecksums: true,
+        }
+      : undefined,
     // Only sign/notarize on macOS when credentials are available (CI-safe)
     osxSign: isMac && hasSignIdentity
       ? {
@@ -62,6 +87,21 @@ const config: ForgeConfig = {
         icon: "./public/images/icon/icon.icns",
       },
       ["darwin"],
+    ),
+    new MakerDeb(
+      {
+        options: {
+          name: "mcp-router",
+          productName: "MCP Router",
+          maintainer: "fjm2u <fm.job@icloud.com>",
+          homepage: "https://github.com/mcp-router/mcp-router",
+          description: "A Unified MCP Server Management App",
+          bin: "MCP Router",
+          icon: "./public/images/icon/icon.png",
+          categories: ["Utility", "Development"],
+        },
+      },
+      ["linux"],
     ),
     new MakerZIP(),
   ],
@@ -100,12 +140,9 @@ const config: ForgeConfig = {
       name: "@electron-forge/publisher-github",
       config: {
         authToken: process.env.GITHUB_TOKEN,
-        repository: {
-          owner: "mcp-router",
-          name: "mcp-router",
-        },
-        prerelease: true,
-        draft: true,
+        ...(githubRepository ? { repository: githubRepository } : {}),
+        prerelease: parseBool(process.env.FORGE_PRERELEASE, true),
+        draft: parseBool(process.env.FORGE_DRAFT, true),
       },
     },
   ],
